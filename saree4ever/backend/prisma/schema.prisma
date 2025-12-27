@@ -26,7 +26,8 @@ model Collection {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   updated_at    DateTime @default(now()) @db.Timestamptz(6)
 
-  products Product[]
+  products            Product[] // Keeping backward compatibility for now
+  product_collections ProductCollection[]
 
   @@index([is_active])
   @@index([display_order])
@@ -45,7 +46,8 @@ model Category {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   updated_at    DateTime @default(now()) @db.Timestamptz(6)
 
-  products Product[]
+  products           Product[] // Keeping backward compatibility
+  product_categories ProductCategory[]
 
   @@index([is_active])
   @@index([display_order])
@@ -64,7 +66,8 @@ model Type {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   updated_at    DateTime @default(now()) @db.Timestamptz(6)
 
-  products Product[]
+  products      Product[] // Keeping backward compatibility
+  product_types ProductType[]
 
   @@index([is_active])
   @@index([display_order])
@@ -95,9 +98,21 @@ model Product {
   created_at        DateTime @default(now()) @db.Timestamptz(6)
   updated_at        DateTime @default(now()) @db.Timestamptz(6)
 
-  collection  Collection? @relation(fields: [collection_id], references: [id])
-  category    Category?   @relation(fields: [category_id], references: [id])
-  type        Type?       @relation(fields: [type_id], references: [id])
+  // Taxonomy fields
+  color           String?  @db.Text
+  weave           String?  @db.Text
+  length_m        Decimal? @db.Decimal(4, 2)
+  blouse_included Boolean  @default(false)
+  subcategories   String[] @default([])
+
+  collection Collection? @relation(fields: [collection_id], references: [id])
+  category   Category?   @relation(fields: [category_id], references: [id])
+  type       Type?       @relation(fields: [type_id], references: [id])
+  
+  product_collections ProductCollection[]
+  product_categories  ProductCategory[]
+  product_types       ProductType[]
+  
   variants    Variant[]
   order_items OrderItem[]
 
@@ -108,6 +123,48 @@ model Product {
   @@index([is_featured])
   @@index([slug])
   @@map("products")
+  @@schema("public")
+}
+
+model ProductCollection {
+  product_id    String   @db.Uuid
+  collection_id String   @db.Uuid
+  display_order Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  product    Product    @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collection_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, collection_id])
+  @@map("product_collections")
+  @@schema("public")
+}
+
+model ProductCategory {
+  product_id  String   @db.Uuid
+  category_id String   @db.Uuid
+  display_order Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  product  Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, category_id])
+  @@map("product_categories")
+  @@schema("public")
+}
+
+model ProductType {
+  product_id String   @db.Uuid
+  type_id    String   @db.Uuid
+  display_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  type    Type    @relation(fields: [type_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, type_id])
+  @@map("product_types")
   @@schema("public")
 }
 
