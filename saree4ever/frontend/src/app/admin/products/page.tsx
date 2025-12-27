@@ -46,7 +46,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // List view state
   const [products, setProducts] = useState<Product[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -64,13 +64,13 @@ export default function AdminProductsPage() {
   });
   const [listCollections, setListCollections] = useState<any[]>([]);
   const [listTypes, setListTypes] = useState<any[]>([]);
-  
+
   // Options for multi-select
   const [collections, setCollections] = useState<Collection[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
-  
+
   // Bulk actions state
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -107,13 +107,13 @@ export default function AdminProductsPage() {
           api.categories.getAll(),
           api.types.getAll(),
         ]);
-        
+
         // Extract arrays from response objects
         // API returns { collections: [...] }, { categories: [...] }, { types: [...] }
         const collectionsArray = (collectionsResponse as any)?.collections || (collectionsResponse as Collection[]) || [];
         const categoriesArray = (categoriesResponse as any)?.categories || (categoriesResponse as Category[]) || [];
         const typesArray = (typesResponse as any)?.types || (typesResponse as Type[]) || [];
-        
+
         // Ensure we have arrays
         setCollections(Array.isArray(collectionsArray) ? collectionsArray : []);
         setCategories(Array.isArray(categoriesArray) ? categoriesArray : []);
@@ -128,7 +128,7 @@ export default function AdminProductsPage() {
         setLoadingOptions(false);
       }
     };
-    
+
     loadOptions();
   }, []);
 
@@ -147,7 +147,7 @@ export default function AdminProductsPage() {
     const newIds = currentIds.includes(value)
       ? currentIds.filter(id => id !== value)
       : [...currentIds, value];
-    
+
     setFormData({
       ...formData,
       [name]: newIds,
@@ -172,7 +172,7 @@ export default function AdminProductsPage() {
 
       const response: any = await api.products.create(productData);
       setSuccess(`Product created successfully! ID: ${response.id || response.product?.id}`);
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -215,10 +215,11 @@ export default function AdminProductsPage() {
     try {
       setListLoading(true);
       const apiFilters: any = {
-        active: filters.active === 'true' ? true : filters.active === 'false' ? false : undefined,
+        // For admin, default to 'all' if no filter selected, to show inactive products too
+        active: filters.active === 'true' ? true : filters.active === 'false' ? false : 'all',
         featured: filters.featured === 'true' ? true : undefined,
       };
-      
+
       if (filters.search) apiFilters.search = filters.search;
       if (filters.collection) apiFilters.collections = filters.collection;
       if (filters.type) apiFilters.types = filters.type;
@@ -226,7 +227,7 @@ export default function AdminProductsPage() {
       if (filters.minPrice) apiFilters.minPrice = filters.minPrice;
       if (filters.maxPrice) apiFilters.maxPrice = filters.maxPrice;
       if (filters.sortBy) apiFilters.sortBy = filters.sortBy;
-      
+
       const response: any = await api.products.getAll(apiFilters);
       const productsData = (response as { products?: Product[] }).products || (response as Product[]) || [];
       setProducts(productsData);
@@ -258,7 +259,7 @@ export default function AdminProductsPage() {
   // Bulk action handlers
   const handleBulkSetFeatured = async () => {
     if (selected.length === 0) return;
-    
+
     setBulkLoading(true);
     setError(null);
     setSuccess(null);
@@ -267,7 +268,7 @@ export default function AdminProductsPage() {
       const promises = selected.map(product =>
         api.products.update(product.id, { is_featured: true })
       );
-      
+
       await Promise.all(promises);
       setSuccess(`Successfully set ${selected.length} product(s) as featured`);
       setSelected([]);
@@ -281,7 +282,7 @@ export default function AdminProductsPage() {
 
   const handleBulkChangeCollection = async () => {
     if (selected.length === 0 || !selectedCollectionId) return;
-    
+
     setBulkLoading(true);
     setError(null);
     setSuccess(null);
@@ -290,7 +291,7 @@ export default function AdminProductsPage() {
       const promises = selected.map(product =>
         api.products.update(product.id, { collection_ids: [selectedCollectionId] })
       );
-      
+
       await Promise.all(promises);
       setSuccess(`Successfully changed collection for ${selected.length} product(s)`);
       setSelected([]);
@@ -306,7 +307,7 @@ export default function AdminProductsPage() {
 
   const handleBulkDelete = async () => {
     if (selected.length === 0) return;
-    
+
     setBulkLoading(true);
     setError(null);
     setSuccess(null);
@@ -315,7 +316,7 @@ export default function AdminProductsPage() {
       const promises = selected.map(product =>
         api.products.delete(product.id)
       );
-      
+
       await Promise.all(promises);
       setSuccess(`Successfully deleted ${selected.length} product(s)`);
       setSelected([]);
@@ -328,12 +329,21 @@ export default function AdminProductsPage() {
     }
   };
 
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const columns = [
     {
       key: 'primary_image_url',
       label: 'Image',
       render: (product: Product) => (
-        <div className="w-16 h-20 relative bg-gray-100">
+        <div
+          className="w-16 h-20 relative bg-gray-100 cursor-pointer overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (product.primary_image_url) setPreviewImage(product.primary_image_url);
+          }}
+          title="Click to preview"
+        >
           {product.primary_image_url ? (
             <Image
               src={product.primary_image_url}
@@ -343,7 +353,7 @@ export default function AdminProductsPage() {
               sizes="64px"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-1">
               No Image
             </div>
           )}
@@ -409,9 +419,8 @@ export default function AdminProductsPage() {
       key: 'is_active',
       label: 'Status',
       render: (product: Product) => (
-        <span className={`text-xs px-2 py-1 rounded ${
-          product.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-        }`}>
+        <span className={`text-xs px-2 py-1 rounded ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+          }`}>
           {product.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -443,6 +452,31 @@ export default function AdminProductsPage() {
   if (action !== 'create') {
     return (
       <div className="space-y-6">
+        {/* Image Preview Modal */}
+        {previewImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+            onClick={() => setPreviewImage(null)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <div className="relative w-full h-full"> {/* Adjust aspect ratio as needed or use object-contain */}
+                <Image
+                  src={previewImage}
+                  alt="Preview"
+                  fill
+                  className="object-contain"
+                  unoptimized // Optional: helpful if optimization is causing 404 on previews
+                />
+              </div>
+              <button
+                className="absolute top-[-40px] right-0 text-white text-4xl hover:text-gray-300 focus:outline-none"
+                onClick={() => setPreviewImage(null)}
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        )}
         {/* Success/Error Messages */}
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
@@ -570,9 +604,9 @@ export default function AdminProductsPage() {
             </div>
             <div className="flex items-end">
               <button
-                onClick={() => setFilters({ 
-                  search: '', collection: '', type: '', category: '', featured: '', 
-                  active: '', minPrice: '', maxPrice: '', sortBy: 'newest' 
+                onClick={() => setFilters({
+                  search: '', collection: '', type: '', category: '', featured: '',
+                  active: '', minPrice: '', maxPrice: '', sortBy: 'newest'
                 })}
                 className="btn-outline text-sm w-full"
               >
@@ -587,21 +621,21 @@ export default function AdminProductsPage() {
           <div className="border border-black p-4 bg-yellow-50 flex items-center justify-between">
             <span className="text-sm font-medium">{selected.length} products selected</span>
             <div className="flex items-center space-x-2">
-              <button 
+              <button
                 onClick={handleBulkSetFeatured}
                 disabled={bulkLoading}
                 className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bulkLoading ? 'Processing...' : 'Set Featured'}
               </button>
-              <button 
+              <button
                 onClick={() => setShowCollectionModal(true)}
                 disabled={bulkLoading}
                 className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Change Collection
               </button>
-              <button 
+              <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={bulkLoading}
                 className="btn-outline text-sm text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -698,6 +732,55 @@ export default function AdminProductsPage() {
     );
   }
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+
+  const handleCreateImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setImageUploadError(null);
+
+    try {
+      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
+      if (!token) throw new Error('Not authenticated');
+
+      const uploadFormData = new FormData();
+      uploadFormData.append('image', file);
+
+      // Upload to default product bucket (productId is optional)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/upload/product`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: uploadFormData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+
+      setFormData({
+        ...formData,
+        [file.name.includes('primary') || !formData.name ? 'primary_image_url' : 'primary_image_url']: data.url // Default to primary for now
+      });
+
+      // Simple way to handle: just set it as primary_image_url
+      setFormData(prev => ({ ...prev, primary_image_url: data.url }));
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setImageUploadError(error.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -707,290 +790,328 @@ export default function AdminProductsPage() {
         <h1 className="heading-serif-md">Create Product</h1>
       </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700">
-              {error}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+            {success}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Product Name *</label>
+          <input
+            type="text"
+            name="name"
+            required
+            value={formData.name}
+            onChange={handleChange}
+            className="input-field"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Description</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows={4}
+            className="input-field"
+          />
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="border p-4 rounded bg-gray-50">
+          <label className="block text-sm font-medium mb-2">Product Image</label>
+
+          {formData.primary_image_url && (
+            <div className="mb-4 relative w-32 h-40">
+              <Image
+                src={formData.primary_image_url}
+                alt="Preview"
+                fill
+                className="object-cover rounded border"
+              />
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, primary_image_url: '' })}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+              >
+                ×
+              </button>
             </div>
           )}
 
-          {success && (
-            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
-              {success}
-            </div>
-          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleCreateImageUpload}
+            disabled={uploadingImage}
+            className="block w-full text-sm text-gray-500
+               file:mr-4 file:py-2 file:px-4
+               file:rounded-full file:border-0
+               file:text-sm file:font-semibold
+               file:bg-blue-50 file:text-blue-700
+               hover:file:bg-blue-100"
+          />
+          {uploadingImage && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+          {imageUploadError && <p className="text-sm text-red-600 mt-1">{imageUploadError}</p>}
+        </div>
 
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Product Name *</label>
+            <label className="block text-sm font-medium mb-1">Base Price (₹) *</label>
+            <input
+              type="number"
+              name="base_price"
+              required
+              step="0.01"
+              value={formData.base_price}
+              onChange={handleChange}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Compare At Price (₹)</label>
+            <input
+              type="number"
+              name="compare_at_price"
+              step="0.01"
+              value={formData.compare_at_price}
+              onChange={handleChange}
+              className="input-field"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">SKU</label>
             <input
               type="text"
-              name="name"
-              required
-              value={formData.name}
+              name="sku"
+              value={formData.sku}
               onChange={handleChange}
               className="input-field"
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
+            <label className="block text-sm font-medium mb-1">MRP (₹)</label>
+            <input
+              type="number"
+              name="mrp"
+              step="0.01"
+              value={formData.mrp}
               onChange={handleChange}
-              rows={4}
               className="input-field"
+              placeholder="Original price before discount"
             />
           </div>
+        </div>
+
+        {/* Product Attributes */}
+        <div className="border-t border-gray-200 pt-6">
+          <h2 className="font-semibold mb-4">Product Attributes</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Base Price (₹) *</label>
-              <input
-                type="number"
-                name="base_price"
-                required
-                step="0.01"
-                value={formData.base_price}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Compare At Price (₹)</label>
-              <input
-                type="number"
-                name="compare_at_price"
-                step="0.01"
-                value={formData.compare_at_price}
-                onChange={handleChange}
-                className="input-field"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">SKU</label>
+              <label className="block text-sm font-medium mb-1">Color</label>
               <input
                 type="text"
-                name="sku"
-                value={formData.sku}
+                name="color"
+                value={formData.color}
                 onChange={handleChange}
                 className="input-field"
+                placeholder="e.g., Red, Maroon, Blue"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">MRP (₹)</label>
-              <input
-                type="number"
-                name="mrp"
-                step="0.01"
-                value={formData.mrp}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Original price before discount"
-              />
-            </div>
-          </div>
-
-          {/* Product Attributes */}
-          <div className="border-t border-gray-200 pt-6">
-            <h2 className="font-semibold mb-4">Product Attributes</h2>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Color</label>
-                <input
-                  type="text"
-                  name="color"
-                  value={formData.color}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="e.g., Red, Maroon, Blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Weave</label>
-                <input
-                  type="text"
-                  name="weave"
-                  value={formData.weave}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="e.g., Kanjivaram weave, Banarasi weave"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Length (meters)</label>
-                <input
-                  type="number"
-                  name="length_m"
-                  step="0.1"
-                  value={formData.length_m}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="e.g., 5.5, 6.0"
-                />
-              </div>
-              <div className="flex items-end">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="blouse_included"
-                    checked={formData.blouse_included}
-                    onChange={handleChange}
-                    className="w-4 h-4 border-black"
-                  />
-                  <span className="text-sm">Blouse Included</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">Subcategories</label>
-              <p className="text-xs text-gray-600 mb-2">Enter subcategories separated by commas (e.g., Pure Silk, Handloom)</p>
+              <label className="block text-sm font-medium mb-1">Weave</label>
               <input
                 type="text"
-                value={subcategoriesInput}
-                onChange={(e) => {
-                  // Allow free typing - don't parse immediately
-                  const inputValue = e.target.value;
-                  setSubcategoriesInput(inputValue);
-                }}
-                onBlur={(e) => {
-                  // Parse and update formData only when user finishes typing (on blur)
-                  const inputValue = e.target.value;
-                  const subcats = inputValue
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0);
-                  // Update both the input display and formData
-                  const formattedValue = subcats.join(', ');
-                  setSubcategoriesInput(formattedValue);
-                  setFormData({ ...formData, subcategories: subcats });
-                }}
+                name="weave"
+                value={formData.weave}
+                onChange={handleChange}
                 className="input-field"
-                placeholder="Pure Silk, Handloom, Designer"
+                placeholder="e.g., Kanjivaram weave, Banarasi weave"
               />
             </div>
           </div>
 
-          {/* Multi-select for Collections */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Collections</label>
-            <p className="text-xs text-gray-600 mb-2">Select one or more collections this product belongs to</p>
-            <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
-              {loadingOptions ? (
-                <p className="text-sm text-gray-500">Loading collections...</p>
-              ) : collections.length === 0 ? (
-                <p className="text-sm text-gray-500">No collections available</p>
-              ) : (
-                <div className="space-y-2">
-                  {collections.map((collection) => (
-                    <label key={collection.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.collection_ids.includes(collection.id)}
-                        onChange={() => handleMultiSelectChange('collection_ids', collection.id)}
-                        className="w-4 h-4 border-black"
-                      />
-                      <span className="text-sm">{collection.name}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Multi-select for Categories */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Categories</label>
-            <p className="text-xs text-gray-600 mb-2">Select one or more categories this product belongs to</p>
-            <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
-              {loadingOptions ? (
-                <p className="text-sm text-gray-500">Loading categories...</p>
-              ) : categories.length === 0 ? (
-                <p className="text-sm text-gray-500">No categories available</p>
-              ) : (
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.category_ids.includes(category.id)}
-                        onChange={() => handleMultiSelectChange('category_ids', category.id)}
-                        className="w-4 h-4 border-black"
-                      />
-                      <span className="text-sm">{category.name}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Multi-select for Types */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Types</label>
-            <p className="text-xs text-gray-600 mb-2">Select one or more types this product belongs to</p>
-            <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
-              {loadingOptions ? (
-                <p className="text-sm text-gray-500">Loading types...</p>
-              ) : types.length === 0 ? (
-                <p className="text-sm text-gray-500">No types available</p>
-              ) : (
-                <div className="space-y-2">
-                  {types.map((type) => (
-                    <label key={type.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.type_ids.includes(type.id)}
-                        onChange={() => handleMultiSelectChange('type_ids', type.id)}
-                        className="w-4 h-4 border-black"
-                      />
-                      <span className="text-sm">{type.name}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2 cursor-pointer">
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Length (meters)</label>
               <input
-                type="checkbox"
-                name="is_featured"
-                checked={formData.is_featured}
+                type="number"
+                name="length_m"
+                step="0.1"
+                value={formData.length_m}
                 onChange={handleChange}
-                className="w-4 h-4 border-black"
+                className="input-field"
+                placeholder="e.g., 5.5, 6.0"
               />
-              <span className="text-sm">Featured Product</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleChange}
-                className="w-4 h-4 border-black"
-              />
-              <span className="text-sm">Active</span>
-            </label>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="blouse_included"
+                  checked={formData.blouse_included}
+                  onChange={handleChange}
+                  className="w-4 h-4 border-black"
+                />
+                <span className="text-sm">Blouse Included</span>
+              </label>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Creating...' : 'Create Product'}
-          </button>
-        </form>
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">Subcategories</label>
+            <p className="text-xs text-gray-600 mb-2">Enter subcategories separated by commas (e.g., Pure Silk, Handloom)</p>
+            <input
+              type="text"
+              value={subcategoriesInput}
+              onChange={(e) => {
+                // Allow free typing - don't parse immediately
+                const inputValue = e.target.value;
+                setSubcategoriesInput(inputValue);
+              }}
+              onBlur={(e) => {
+                // Parse and update formData only when user finishes typing (on blur)
+                const inputValue = e.target.value;
+                const subcats = inputValue
+                  .split(',')
+                  .map(s => s.trim())
+                  .filter(s => s.length > 0);
+                // Update both the input display and formData
+                const formattedValue = subcats.join(', ');
+                setSubcategoriesInput(formattedValue);
+                setFormData({ ...formData, subcategories: subcats });
+              }}
+              className="input-field"
+              placeholder="Pure Silk, Handloom, Designer"
+            />
+          </div>
+        </div>
+
+        {/* Multi-select for Collections */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Collections</label>
+          <p className="text-xs text-gray-600 mb-2">Select one or more collections this product belongs to</p>
+          <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
+            {loadingOptions ? (
+              <p className="text-sm text-gray-500">Loading collections...</p>
+            ) : collections.length === 0 ? (
+              <p className="text-sm text-gray-500">No collections available</p>
+            ) : (
+              <div className="space-y-2">
+                {collections.map((collection) => (
+                  <label key={collection.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.collection_ids.includes(collection.id)}
+                      onChange={() => handleMultiSelectChange('collection_ids', collection.id)}
+                      className="w-4 h-4 border-black"
+                    />
+                    <span className="text-sm">{collection.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Multi-select for Categories */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Categories</label>
+          <p className="text-xs text-gray-600 mb-2">Select one or more categories this product belongs to</p>
+          <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
+            {loadingOptions ? (
+              <p className="text-sm text-gray-500">Loading categories...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-sm text-gray-500">No categories available</p>
+            ) : (
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.category_ids.includes(category.id)}
+                      onChange={() => handleMultiSelectChange('category_ids', category.id)}
+                      className="w-4 h-4 border-black"
+                    />
+                    <span className="text-sm">{category.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Multi-select for Types */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Types</label>
+          <p className="text-xs text-gray-600 mb-2">Select one or more types this product belongs to</p>
+          <div className="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
+            {loadingOptions ? (
+              <p className="text-sm text-gray-500">Loading types...</p>
+            ) : types.length === 0 ? (
+              <p className="text-sm text-gray-500">No types available</p>
+            ) : (
+              <div className="space-y-2">
+                {types.map((type) => (
+                  <label key={type.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.type_ids.includes(type.id)}
+                      onChange={() => handleMultiSelectChange('type_ids', type.id)}
+                      className="w-4 h-4 border-black"
+                    />
+                    <span className="text-sm">{type.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_featured"
+              checked={formData.is_featured}
+              onChange={handleChange}
+              className="w-4 h-4 border-black"
+            />
+            <span className="text-sm">Featured Product</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={formData.is_active}
+              onChange={handleChange}
+              className="w-4 h-4 border-black"
+            />
+            <span className="text-sm">Active</span>
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={`btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {loading ? 'Creating...' : 'Create Product'}
+        </button>
+      </form>
 
       <div className="mt-12 pt-8 border-t border-gray-200">
         <p className="text-sm text-gray-600">

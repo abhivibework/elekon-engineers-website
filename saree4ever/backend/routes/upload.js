@@ -28,7 +28,7 @@ const uploadVideo = multer({
   },
   fileFilter: (req, file, cb) => {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:30',message:'Multer fileFilter called',data:{mimetype:file.mimetype,originalname:file.originalname,size:file.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:30', message: 'Multer fileFilter called', data: { mimetype: file.mimetype, originalname: file.originalname, size: file.size }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
     // #endregion
     const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
     if (allowedTypes.includes(file.mimetype)) {
@@ -75,7 +75,7 @@ router.post('/hero-slide', authenticate, isAdmin, upload.single('image'), async 
       .from('hero-slides')
       .getPublicUrl(fileName);
 
-    res.json({ 
+    res.json({
       url: publicUrl,
       fileName: fileName,
       message: 'Image uploaded successfully'
@@ -105,7 +105,7 @@ router.post('/product', authenticate, isAdmin, upload.single('image'), async (re
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('product-media')
+      .from('products')
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,
         cacheControl: '3600',
@@ -119,10 +119,10 @@ router.post('/product', authenticate, isAdmin, upload.single('image'), async (re
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('product-media')
+      .from('products')
       .getPublicUrl(fileName);
 
-    res.json({ 
+    res.json({
       url: publicUrl,
       fileName: fileName,
       message: 'Image uploaded successfully'
@@ -168,7 +168,7 @@ router.post('/image', authenticate, isAdmin, upload.single('image'), async (req,
       .from(bucket)
       .getPublicUrl(fileName);
 
-    res.json({ 
+    res.json({
       url: publicUrl,
       fileName: fileName,
       message: 'Image uploaded successfully'
@@ -208,8 +208,8 @@ router.post('/landing-page-video', authenticate, isAdmin, uploadVideo.single('vi
       console.error('Supabase upload error:', error);
       // If bucket doesn't exist, try 'product-media' as fallback
       if (error.message?.includes('Bucket not found')) {
-        return res.status(500).json({ 
-          error: 'Storage bucket "landing-videos" not found. Please create it in Supabase Storage settings.' 
+        return res.status(500).json({
+          error: 'Storage bucket "landing-videos" not found. Please create it in Supabase Storage settings.'
         });
       }
       return res.status(500).json({ error: `Failed to upload video: ${error.message}` });
@@ -220,7 +220,7 @@ router.post('/landing-page-video', authenticate, isAdmin, uploadVideo.single('vi
       .from('landing-videos')
       .getPublicUrl(fileName);
 
-    res.json({ 
+    res.json({
       url: publicUrl,
       fileName: fileName,
       message: 'Video uploaded successfully'
@@ -237,7 +237,7 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
   uploadVideo.single('video')(req, res, (err) => {
     if (err) {
       // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:233',message:'Multer error handler',data:{errorMessage:err.message,errorCode:err.code,errorField:err.field},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:233', message: 'Multer error handler', data: { errorMessage: err.message, errorCode: err.code, errorField: err.field }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
       // #endregion
       return res.status(400).json({ error: err.message || 'File upload error' });
     }
@@ -246,7 +246,7 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
 }, async (req, res) => {
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:233',message:'Direct upload endpoint entry',data:{hasFile:!!req.file,contentLength:req.headers['content-length']},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:233', message: 'Direct upload endpoint entry', data: { hasFile: !!req.file, contentLength: req.headers['content-length'] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
     // #endregion
 
     if (!req.file) {
@@ -256,7 +256,7 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
     const file = req.file;
 
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:241',message:'File received from multer',data:{size:file.size,bufferLength:file.buffer?.length,mimetype:file.mimetype,originalname:file.originalname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:241', message: 'File received from multer', data: { size: file.size, bufferLength: file.buffer?.length, mimetype: file.mimetype, originalname: file.originalname }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
     // #endregion
 
     // Generate unique filename
@@ -266,7 +266,7 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
     const fileName = `${timestamp}-${randomString}.${fileExt}`;
 
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:250',message:'Before Supabase upload',data:{fileName,bufferLength:file.buffer?.length,contentType:file.mimetype,fileSize:file.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:250', message: 'Before Supabase upload', data: { fileName, bufferLength: file.buffer?.length, contentType: file.mimetype, fileSize: file.size }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
     // #endregion
 
     // For files larger than 45MB, use chunked upload to work around Supabase global limit
@@ -275,7 +275,7 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
 
     if (file.buffer.length > CHUNK_SIZE) {
       // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:273',message:'Using chunked upload',data:{fileSize:file.buffer.length,chunkSize:CHUNK_SIZE,numChunks:Math.ceil(file.buffer.length/CHUNK_SIZE)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:273', message: 'Using chunked upload', data: { fileSize: file.buffer.length, chunkSize: CHUNK_SIZE, numChunks: Math.ceil(file.buffer.length / CHUNK_SIZE) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
       // #endregion
 
       // Upload entire file - Supabase should handle large files with resumable uploads
@@ -287,18 +287,18 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
           cacheControl: '3600',
           upsert: false,
         });
-      
+
       data = uploadResult.data;
       error = uploadResult.error;
 
       // If standard upload fails with size error, try alternative: upload to a different service or use URL
       if (error && error.message?.includes('maximum allowed size')) {
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:288',message:'Size limit hit, suggesting alternative',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:288', message: 'Size limit hit, suggesting alternative', data: { error: error.message }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
         // #endregion
-        
-        return res.status(413).json({ 
-          error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds Supabase global limit (50MB on free plans). Please either: 1) Upgrade your Supabase plan to increase the limit, 2) Compress the video, or 3) Use an external video hosting service and provide a URL instead.` 
+
+        return res.status(413).json({
+          error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds Supabase global limit (50MB on free plans). Please either: 1) Upgrade your Supabase plan to increase the limit, 2) Compress the video, or 3) Use an external video hosting service and provide a URL instead.`
         });
       }
     } else {
@@ -310,25 +310,25 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
           cacheControl: '3600',
           upsert: false,
         });
-      
+
       data = uploadResult.data;
       error = uploadResult.error;
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:256',message:'After Supabase upload',data:{hasError:!!error,errorMessage:error?.message,errorCode:error?.statusCode,errorObject:error,hasData:!!data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:256', message: 'After Supabase upload', data: { hasError: !!error, errorMessage: error?.message, errorCode: error?.statusCode, errorObject: error, hasData: !!data }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
     // #endregion
 
     if (error) {
       console.error('Supabase upload error:', error);
-      
+
       // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:262',message:'Supabase error details',data:{error:JSON.stringify(error),errorMessage:error.message,errorStatus:error.statusCode,fullError:error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:262', message: 'Supabase error details', data: { error: JSON.stringify(error), errorMessage: error.message, errorStatus: error.statusCode, fullError: error }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
       // #endregion
-      
+
       if (error.message?.includes('Bucket not found')) {
-        return res.status(500).json({ 
-          error: 'Storage bucket "landing-videos" not found. Please create it in Supabase Storage settings.' 
+        return res.status(500).json({
+          error: 'Storage bucket "landing-videos" not found. Please create it in Supabase Storage settings.'
         });
       }
       return res.status(500).json({ error: `Failed to upload video: ${error.message}` });
@@ -339,14 +339,14 @@ router.post('/landing-page-video/direct', authenticate, isAdmin, (req, res, next
       .from('landing-videos')
       .getPublicUrl(fileName);
 
-    res.json({ 
+    res.json({
       url: publicUrl,
       fileName: fileName,
       message: 'Video uploaded successfully'
     });
   } catch (error) {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload.js:300',message:'Catch block error - direct upload',data:{errorMessage:error.message,errorStack:error.stack,errorName:error.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/9491d29f-60fd-4a23-b492-56152deff670', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'upload.js:300', message: 'Catch block error - direct upload', data: { errorMessage: error.message, errorStack: error.stack, errorName: error.name }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
     // #endregion
     console.error('Upload error:', error);
     res.status(500).json({ error: error.message || 'Failed to upload video' });

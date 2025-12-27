@@ -5,12 +5,15 @@ import { api } from '@/lib/api';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { getProductDisplayImage } from '@/lib/productImage';
 
 interface Product {
   id: string;
   slug: string;
   name: string;
   primary_image_url: string | null;
+  image_urls?: (string | null)[] | null;
+  variants?: Array<{ image_url?: string | null } | null>;
   base_price: number;
   compare_at_price?: number | null;
   collections?: Array<{ id: string; name: string; slug: string }>;
@@ -126,7 +129,7 @@ export default function WishlistPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => {
             const displayCollections = product.collections || [];
-            const imageUrl = product.primary_image_url || null;
+            const imageUrl = getProductDisplayImage(product);
 
             return (
               <div key={product.id} className="product-card group relative">
@@ -234,7 +237,6 @@ export default function WishlistPage() {
     </div>
   );
 }
-
 
 
 

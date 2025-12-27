@@ -86,6 +86,7 @@ model Product {
   type_id           String?  @db.Uuid
   base_price        Decimal  @db.Decimal(10, 2)
   compare_at_price  Decimal? @db.Decimal(10, 2)
+  mrp               Decimal? @db.Decimal(10, 2)
   primary_image_url String?  @db.Text
   image_urls        String[] @default([])
   sku               String?  @unique @db.Text
@@ -326,5 +327,111 @@ model UserProfile {
   updated_at          DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("user_profiles")
+  @@schema("public")
+}
+
+model HeroSlide {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String   @db.Text
+  subtitle      String?  @db.Text
+  image_url     String   @db.Text
+  button_text   String   @default("Shop Now") @db.Text
+  button_link   String   @default("/collections/new-arrivals") @db.Text
+  display_order Int      @default(0)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_active])
+  @@index([display_order])
+  @@map("hero_slides")
+  @@schema("public")
+}
+
+model BlogArticle {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String   @db.Text
+  slug            String   @unique @db.Text
+  excerpt         String?  @db.Text
+  content         String?  @db.Text
+  author_name     String?  @db.Text
+  cover_image_url String?  @db.Text
+  is_featured     Boolean  @default(false)
+  is_published    Boolean  @default(true)
+  status          String   @default("published") @db.Text // 'published', 'draft', 'archived'
+  published_at    DateTime @default(now()) @db.Timestamptz(6)
+  category        String?  @db.Text
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_published])
+  @@index([slug])
+  @@map("blog_articles")
+  @@schema("public")
+}
+
+model AnnouncementBar {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  text          String   @db.Text
+  link_url      String?  @db.Text
+  background_color String @default("#000000") @db.Text
+  text_color    String   @default("#ffffff") @db.Text
+  is_active     Boolean  @default(false)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_active])
+  @@map("announcement_bars")
+  @@schema("public")
+}
+
+model Testimonial {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_name String   @db.Text
+  content       String   @db.Text
+  rating        Int      @default(5)
+  image_url     String?  @db.Text
+  is_active     Boolean  @default(true)
+  display_order Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_active])
+  @@map("testimonials")
+  @@schema("public")
+}
+
+model LandingPageVideo {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String   @db.Text
+  video_url     String   @db.Text
+  thumbnail_url String?  @db.Text
+  is_active     Boolean  @default(true)
+  display_order Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("landing_page_videos")
+  @@schema("public")
+}
+
+model LandingPageSection {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  section_key String   @unique @db.Text // e.g., 'hero', 'featured_products'
+  is_visible  Boolean  @default(true)
+  settings    Json?    @db.Json
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("landing_page_sections")
+  @@schema("public")
+}
+
+model SocialMediaSetting {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platform      String   @unique @db.Text // facebook, instagram, etc
+  url           String   @db.Text
+  icon_name     String?  @db.Text
+  is_visible    Boolean  @default(true)
+  display_order Int      @default(0)
+
+  @@map("social_media_settings")
   @@schema("public")
 }

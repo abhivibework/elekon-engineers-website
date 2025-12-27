@@ -7,6 +7,7 @@ import ProductHighlights from '@/components/ProductHighlights';
 import ProductDeliveryInfo from '@/components/ProductDeliveryInfo';
 import ProductTabs from '@/components/ProductTabs';
 import { notFound } from 'next/navigation';
+import { collectProductImages } from '@/lib/productImage';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,12 +127,11 @@ export default async function ProductDetailPage({
   );
 
   // Safely handle image_urls - ensure it's always an array
-  const imageUrls = Array.isArray(product.image_urls) ? product.image_urls : [];
-  
-  // Build images array, filtering out null/undefined values
-  const images = product.primary_image_url
-    ? [product.primary_image_url, ...imageUrls].filter(Boolean)
-    : imageUrls.filter(Boolean);
+  const images = collectProductImages({
+    primary_image_url: product.primary_image_url,
+    image_urls: Array.isArray(product.image_urls) ? product.image_urls : [],
+    variants: Array.isArray(product.variants) ? product.variants : [],
+  });
 
   // Calculate discount percentage
   const discountPercent = product.compare_at_price && product.base_price
@@ -323,9 +323,11 @@ export default async function ProductDetailPage({
             <h2 className="heading-serif-md mb-8 text-center">You May Also Like</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((relatedProduct) => {
-                const relatedImages = relatedProduct.primary_image_url
-                  ? [relatedProduct.primary_image_url, ...(relatedProduct.image_urls || [])].filter(Boolean)
-                  : (relatedProduct.image_urls || []).filter(Boolean);
+                const relatedImages = collectProductImages({
+                  primary_image_url: relatedProduct.primary_image_url,
+                  image_urls: relatedProduct.image_urls || [],
+                  variants: Array.isArray(relatedProduct.variants) ? relatedProduct.variants : [],
+                });
                 
                 return (
                   <Link

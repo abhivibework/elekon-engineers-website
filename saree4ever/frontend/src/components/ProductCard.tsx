@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { getProductDisplayImage } from '@/lib/productImage';
 
 interface Collection {
   id?: string;
@@ -18,6 +19,8 @@ interface ProductCardProps {
   slug: string;
   name: string;
   image: string | null;
+  imageUrls?: (string | null)[];
+  variants?: Array<{ image_url?: string | null } | null>;
   price: number;
   compareAtPrice?: number | null;
   collection?: string; // Backward compatibility
@@ -29,6 +32,8 @@ export default function ProductCard({
   slug,
   name,
   image,
+  imageUrls = [],
+  variants = [],
   price,
   compareAtPrice,
   collection,
@@ -38,6 +43,11 @@ export default function ProductCard({
   const { isFavorite, toggleFavorite } = useWishlist();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const isFav = isFavorite(id);
+  const displayImage = getProductDisplayImage({
+    primary_image_url: image,
+    image_urls: imageUrls,
+    variants,
+  });
 
   // Use collections array if available, otherwise fall back to single collection
   const displayCollections = collections.length > 0 
@@ -81,7 +91,7 @@ export default function ProductCard({
         productId: id,
         quantity: 1,
         price: variantPrice,
-        image: image || '',
+        image: displayImage || '',
         title: name,
         variantName: variantName && variantName !== name ? variantName : undefined,
       });
@@ -111,9 +121,9 @@ export default function ProductCard({
     <div className="product-card group relative">
       <Link href={`/product/${slug}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-          {image ? (
+          {displayImage ? (
             <Image
-              src={image}
+              src={displayImage}
               alt={name}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -237,4 +247,3 @@ export default function ProductCard({
     </div>
   );
 }
-

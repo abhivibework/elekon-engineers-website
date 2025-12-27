@@ -9,6 +9,8 @@ interface Product {
   slug: string;
   name: string;
   primary_image_url: string | null;
+  image_urls?: (string | null)[] | null;
+  variants?: Array<{ image_url?: string | null } | null>;
   base_price: number;
   compare_at_price: number | null;
   collection?: {
@@ -71,4 +73,3 @@ export default async function CollectionProductsPage({
     </div>
   );
 }
-

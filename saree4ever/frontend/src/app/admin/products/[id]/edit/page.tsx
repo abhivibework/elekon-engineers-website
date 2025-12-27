@@ -46,16 +46,31 @@ interface Product {
   image_urls?: string[];
 }
 
+interface Variant {
+  id: string;
+  product_id: string;
+  name: string;
+  sku: string;
+  price: number;
+  compare_at_price: number | null;
+  color: string | null;
+  size: string | null;
+  stock_quantity: number;
+  track_inventory: boolean;
+  is_active: boolean;
+  image_url?: string | null;
+}
+
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params?.id as string;
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const [collections, setCollections] = useState<Collection[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
@@ -67,11 +82,29 @@ export default function EditProductPage() {
   const [subcategoriesInput, setSubcategoriesInput] = useState<string>('');
   const imageFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load product and options
+  // Variant State
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [editingVariant, setEditingVariant] = useState<Variant | null>(null);
+  const [variantForm, setVariantForm] = useState({
+    name: '',
+    sku: '',
+    color: '',
+    size: '',
+    price: 0,
+    compare_at_price: 0,
+    stock_quantity: 0,
+    is_active: true,
+  });
+  const [savingVariant, setSavingVariant] = useState(false);
+
+  // Load product, options, and variants
   useEffect(() => {
     if (productId) {
       loadProduct();
       loadOptions();
+      loadVariants();
     }
   }, [productId]);
 
@@ -80,7 +113,7 @@ export default function EditProductPage() {
       setLoading(true);
       const response: any = await api.products.getById(productId);
       const product = (response as { product?: Product }).product || response as Product;
-      
+
       // Extract IDs from relationships
       const productData: Product = {
         ...product,
@@ -89,7 +122,7 @@ export default function EditProductPage() {
         type_ids: (product as any).types?.map((t: any) => t.id) || [],
         subcategories: product.subcategories || [],
       };
-      
+
       setFormData(productData);
       // Initialize subcategories input with formatted string
       setSubcategoriesInput((product.subcategories || []).join(', '));
@@ -109,7 +142,7 @@ export default function EditProductPage() {
         api.categories.getAll(),
         api.types.getAll(),
       ]);
-      
+
       setCollections((collectionsRes as any)?.collections || collectionsRes || []);
       setCategories((categoriesRes as any)?.categories || categoriesRes || []);
       setTypes((typesRes as any)?.types || typesRes || []);
@@ -120,10 +153,24 @@ export default function EditProductPage() {
     }
   };
 
+  const loadVariants = async () => {
+    setLoadingVariants(true);
+    try {
+      const response: any = await api.variants.getByProduct(productId);
+      const variantsList = Array.isArray(response) ? response : response.variants || [];
+      setVariants(variantsList);
+    } catch (error) {
+      console.error('Failed to load variants:', error);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!formData) return;
-    
+
     const { name, value, type } = e.target;
+    // Handle checkbox properly
     const checked = (e.target as HTMLInputElement).checked;
 
     setFormData({
@@ -134,12 +181,12 @@ export default function EditProductPage() {
 
   const handleMultiSelectChange = (name: 'collection_ids' | 'category_ids' | 'type_ids', value: string) => {
     if (!formData) return;
-    
+
     const currentIds = formData[name] || [];
     const newIds = currentIds.includes(value)
       ? currentIds.filter(id => id !== value)
       : [...currentIds, value];
-    
+
     setFormData({
       ...formData,
       [name]: newIds,
@@ -183,7 +230,7 @@ export default function EditProductPage() {
         setFormData({ ...formData, primary_image_url: data.url });
       }
       setUploadError(null);
-      
+
       // Reset file input
       if (imageFileInputRef.current) {
         imageFileInputRef.current.value = '';
@@ -218,7 +265,7 @@ export default function EditProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData || !productId) return;
-    
+
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -230,12 +277,12 @@ export default function EditProductPage() {
         compare_at_price: formData.compare_at_price ? parseFloat(String(formData.compare_at_price)) : null,
         mrp: formData.mrp ? parseFloat(String(formData.mrp)) : null,
         length_m: formData.length_m ? parseFloat(String(formData.length_m)) : null,
-        subcategories: formData.subcategories.length > 0 ? formData.subcategories : undefined,
+        subcategories: formData.subcategories?.length ? formData.subcategories : undefined,
       };
 
       await api.products.update(productId, productData);
       setSuccess('Product updated successfully!');
-      
+
       // Redirect to products list after 2 seconds
       setTimeout(() => {
         router.push('/admin/products');
@@ -244,6 +291,86 @@ export default function EditProductPage() {
       setError(err.message || 'Failed to update product');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // --- Variant Management Handlers ---
+
+  const handleOpenVariantModal = (variant: Variant | null = null) => {
+    setEditingVariant(variant);
+    if (variant) {
+      setVariantForm({
+        name: variant.name,
+        sku: variant.sku,
+        color: variant.color || '',
+        size: variant.size || '',
+        price: variant.price,
+        compare_at_price: variant.compare_at_price || 0,
+        stock_quantity: variant.stock_quantity,
+        is_active: variant.is_active,
+      });
+    } else {
+      // Initialize new variant with defaults from product
+      setVariantForm({
+        name: '',
+        sku: '',
+        color: formData?.color || '',
+        size: '',
+        price: formData?.base_price || 0,
+        compare_at_price: formData?.compare_at_price || 0,
+        stock_quantity: 0,
+        is_active: true,
+      });
+    }
+    setShowVariantModal(true);
+  };
+
+  const handleVariantChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    // Handle checkbox properly
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setVariantForm({
+      ...variantForm,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  };
+
+  const handleSaveVariant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingVariant(true);
+    try {
+      const payload = {
+        ...variantForm,
+        product_id: productId,
+        price: Number(variantForm.price),
+        compare_at_price: Number(variantForm.compare_at_price) || null,
+        stock_quantity: Number(variantForm.stock_quantity),
+        track_inventory: true, // Always track inventory for custom variants
+      };
+
+      if (editingVariant) {
+        await api.variants.update(editingVariant.id, payload);
+      } else {
+        await api.variants.create(payload);
+      }
+
+      setShowVariantModal(false);
+      loadVariants(); // Reload list
+    } catch (err: any) {
+      alert(err.message || 'Failed to save variant');
+    } finally {
+      setSavingVariant(false);
+    }
+  };
+
+  const handleDeleteVariant = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this variant? This cannot be undone.')) return;
+    try {
+      await api.variants.delete(id);
+      loadVariants();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete variant');
     }
   };
 
@@ -293,7 +420,7 @@ export default function EditProductPage() {
         {/* Basic Information */}
         <div className="border-t border-gray-200 pt-6">
           <h2 className="font-semibold mb-4">Basic Information</h2>
-          
+
           <div>
             <label className="block text-sm font-medium mb-1">Product Name *</label>
             <input
@@ -320,28 +447,28 @@ export default function EditProductPage() {
           {/* Primary Image */}
           <div className="mt-4">
             <label className="block text-sm font-medium mb-1">Product Photo *</label>
-            
+
             {/* Current Image Display with Actions */}
             {formData.primary_image_url ? (
               <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <div className="flex items-start space-x-4">
                   {/* Image Preview */}
                   <div className="flex-shrink-0">
-                    <img 
-                      src={formData.primary_image_url} 
-                      alt="Product preview" 
+                    <img
+                      src={formData.primary_image_url}
+                      alt="Product preview"
                       className="w-32 h-32 object-cover border border-gray-300 rounded"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   </div>
-                  
+
                   {/* Image Info and Actions */}
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-700 mb-2">Current Product Image</p>
                     <p className="text-xs text-gray-500 mb-3 break-all">{formData.primary_image_url}</p>
-                    
+
                     {/* Action Buttons */}
                     <div className="flex space-x-2">
                       <button
@@ -361,7 +488,7 @@ export default function EditProductPage() {
                         Delete Image
                       </button>
                     </div>
-                    
+
                     {uploadError && (
                       <p className="text-xs text-red-600 mt-2">{uploadError}</p>
                     )}
@@ -486,10 +613,87 @@ export default function EditProductPage() {
           </div>
         </div>
 
+        {/* Variants & Inventory Management Section */}
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-semibold">Variants & Inventory</h2>
+            <button
+              type="button"
+              onClick={() => handleOpenVariantModal()}
+              className="text-sm bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800"
+            >
+              + Add Variant
+            </button>
+          </div>
+
+          {loadingVariants ? (
+            <p className="text-sm text-gray-500">Loading variants...</p>
+          ) : variants.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg p-6 text-center border border-dashed border-gray-300">
+              <p className="text-sm text-gray-500 mb-2">No variants created yet.</p>
+              <p className="text-xs text-gray-400">
+                Create variants (e.g., Size, Color) to manage inventory for specific options.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Name</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">SKU</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Attributes</th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">Price</th>
+                    <th className="px-4 py-2 text-center font-medium text-gray-500">Stock</th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {variants.map((v) => (
+                    <tr key={v.id}>
+                      <td className="px-4 py-2 font-medium">{v.name}</td>
+                      <td className="px-4 py-2 text-gray-500 font-mono text-xs">{v.sku}</td>
+                      <td className="px-4 py-2 text-gray-500">
+                        <span className="inline-block mr-2">{v.color ? `Color: ${v.color}` : ''}</span>
+                        <span>{v.size ? `Size: ${v.size}` : ''}</span>
+                      </td>
+                      <td className="px-4 py-2 text-right">₹{v.price}</td>
+                      <td className="px-4 py-2 text-center">
+                        <span className={`px-2 py-0.5 rounded text-xs ${v.stock_quantity < 5 ? 'bg-red-100 text-red-800' :
+                            v.stock_quantity < 20 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                          }`}>
+                          {v.stock_quantity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenVariantModal(v)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVariant(v.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         {/* Product Attributes */}
         <div className="border-t border-gray-200 pt-6">
           <h2 className="font-semibold mb-4">Product Attributes</h2>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Color</label>
@@ -690,7 +894,7 @@ export default function EditProductPage() {
             disabled={saving}
             className={`btn-primary ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : 'Save Product Changes'}
           </button>
           <Link href="/admin/products" className="btn-outline">
             Cancel
@@ -704,9 +908,115 @@ export default function EditProductPage() {
           </Link>
         </div>
       </form>
+
+      {/* Variant Modal */}
+      {showVariantModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingVariant ? 'Edit Variant' : 'Add New Variant'}
+            </h3>
+
+            <form onSubmit={handleSaveVariant} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Variant Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={variantForm.name}
+                  onChange={handleVariantChange}
+                  className="input-field"
+                  placeholder="e.g., Red - Small"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">SKU *</label>
+                <input
+                  type="text"
+                  name="sku"
+                  required
+                  value={variantForm.sku}
+                  onChange={handleVariantChange}
+                  className="input-field"
+                  placeholder="Unique SKU for this variant"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Color</label>
+                  <input
+                    type="text"
+                    name="color"
+                    value={variantForm.color}
+                    onChange={handleVariantChange}
+                    className="input-field"
+                    placeholder="e.g. Red"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Size</label>
+                  <input
+                    type="text"
+                    name="size"
+                    value={variantForm.size}
+                    onChange={handleVariantChange}
+                    className="input-field"
+                    placeholder="e.g. Small"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Price (₹)</label>
+                  <input
+                    type="number"
+                    name="price"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={variantForm.price}
+                    onChange={handleVariantChange}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Stock Quantity</label>
+                  <input
+                    type="number"
+                    name="stock_quantity"
+                    required
+                    min="0"
+                    value={variantForm.stock_quantity}
+                    onChange={handleVariantChange}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowVariantModal(false)}
+                  className="btn-outline"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingVariant}
+                  className="btn-primary"
+                >
+                  {savingVariant ? 'Saving...' : 'Save Variant'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-
-

@@ -7,17 +7,17 @@ const { generateSlug, generateProductSKU } = require('../utils/helpers');
  * Enhanced with advanced filters: price range, multiple categories/types/collections, color, sorting
  */
 exports.getAllProducts = async (filters = {}) => {
-  const { 
-    collection, 
+  const {
+    collection,
     collections, // comma-separated slugs
-    category, 
+    category,
     categories, // comma-separated slugs
-    type, 
+    type,
     types, // comma-separated slugs
-    featured, 
-    active, 
-    limit = 50, 
-    offset = 0, 
+    featured,
+    active,
+    limit = 50,
+    offset = 0,
     search,
     minPrice,
     maxPrice,
@@ -37,13 +37,13 @@ exports.getAllProducts = async (filters = {}) => {
     if (!slugs) return [];
     const slugArray = Array.isArray(slugs) ? slugs : slugs.split(',').map(s => s.trim()).filter(Boolean);
     if (slugArray.length === 0) return [];
-    
+
     const { data, error } = await supabase
       .from(tableName)
       .select('id')
       .in('slug', slugArray)
       .eq('is_active', true);
-    
+
     if (error || !data) return [];
     return data.map(item => item.id);
   };
@@ -52,7 +52,7 @@ exports.getAllProducts = async (filters = {}) => {
   let collectionId = collection;
   let categoryId = category;
   let typeId = type;
-  
+
   if (collection && !isUUID(collection)) {
     const { data: collectionData } = await supabase
       .from('collections')
@@ -62,7 +62,7 @@ exports.getAllProducts = async (filters = {}) => {
       .single();
     collectionId = collectionData?.id;
   }
-  
+
   if (category && !isUUID(category)) {
     const { data: categoryData } = await supabase
       .from('categories')
@@ -72,7 +72,7 @@ exports.getAllProducts = async (filters = {}) => {
       .single();
     categoryId = categoryData?.id;
   }
-  
+
   if (type && !isUUID(type)) {
     const { data: typeData } = await supabase
       .from('types')
@@ -87,7 +87,7 @@ exports.getAllProducts = async (filters = {}) => {
   const collectionIds = collections ? await resolveSlugsToIds(collections, 'collections') : [];
   const categoryIds = categories ? await resolveSlugsToIds(categories, 'categories') : [];
   const typeIds = types ? await resolveSlugsToIds(types, 'types') : [];
-  
+
   // Combine single and multiple filters
   const allCollectionIds = [...(collectionId ? [collectionId] : []), ...collectionIds];
   const allCategoryIds = [...(categoryId ? [categoryId] : []), ...categoryIds];
@@ -96,7 +96,7 @@ exports.getAllProducts = async (filters = {}) => {
   // Get product IDs from junction tables
   let productIds = null;
   const productIdQueries = [];
-  
+
   if (allCollectionIds.length > 0) {
     const { data: collectionProducts } = await supabase
       .from('product_collections')
@@ -106,7 +106,7 @@ exports.getAllProducts = async (filters = {}) => {
       productIdQueries.push(collectionProducts.map(p => p.product_id));
     }
   }
-  
+
   if (allCategoryIds.length > 0) {
     const { data: categoryProducts } = await supabase
       .from('product_categories')
@@ -116,7 +116,7 @@ exports.getAllProducts = async (filters = {}) => {
       productIdQueries.push(categoryProducts.map(p => p.product_id));
     }
   }
-  
+
   if (allTypeIds.length > 0) {
     const { data: typeProducts } = await supabase
       .from('product_types')
@@ -126,13 +126,13 @@ exports.getAllProducts = async (filters = {}) => {
       productIdQueries.push(typeProducts.map(p => p.product_id));
     }
   }
-  
+
   // Intersect all product ID arrays (products must match all selected filters)
   if (productIdQueries.length > 0) {
-    productIds = productIdQueries.reduce((acc, ids) => 
+    productIds = productIdQueries.reduce((acc, ids) =>
       acc.filter(id => ids.includes(id))
     );
-    
+
     if (productIds.length === 0) {
       return []; // No products match all filters
     }
@@ -163,12 +163,12 @@ exports.getAllProducts = async (filters = {}) => {
     // Default: show only active products (for regular users and when active is undefined/null/'true')
     query = query.eq('is_active', true);
   }
-  
+
   // Filter by product IDs from junction tables
   if (productIds && productIds.length > 0) {
     query = query.in('id', productIds);
   }
-  
+
   // Fallback to old column-based filtering if no junction table filtering
   if (!productIds) {
     if (collectionId) {
@@ -181,7 +181,7 @@ exports.getAllProducts = async (filters = {}) => {
       query = query.eq('type_id', typeId);
     }
   }
-  
+
   // Price range filter
   if (minPrice !== undefined && minPrice !== null && minPrice !== '') {
     query = query.gte('base_price', parseFloat(minPrice));
@@ -189,16 +189,16 @@ exports.getAllProducts = async (filters = {}) => {
   if (maxPrice !== undefined && maxPrice !== null && maxPrice !== '') {
     query = query.lte('base_price', parseFloat(maxPrice));
   }
-  
+
   if (featured === 'true') {
     query = query.eq('is_featured', true);
   }
-  
+
   // Enhanced search across name, description, and SKU
   if (search) {
     query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`);
   }
-  
+
   // Apply sorting
   switch (sortBy) {
     case 'price-low':
@@ -227,7 +227,7 @@ exports.getAllProducts = async (filters = {}) => {
 
   const { data, error } = await query;
   if (error) throw error;
-  
+
   // Transform the data to flatten collections/categories/types arrays
   let transformedData = [];
   if (data) {
@@ -242,7 +242,7 @@ exports.getAllProducts = async (filters = {}) => {
       type: product.product_types?.[0]?.type || product.type || null,
     }));
   }
-  
+
   // Apply color filter if specified (filter by variant colors)
   if (color && transformedData.length > 0) {
     const colorArray = Array.isArray(color) ? color : color.split(',').map(c => c.trim().toLowerCase());
@@ -255,7 +255,7 @@ exports.getAllProducts = async (filters = {}) => {
       });
     });
   }
-  
+
   // Apply subcategories filter if specified (filter by tags or categories)
   if (subcategories && transformedData.length > 0) {
     const subcategoryArray = Array.isArray(subcategories) ? subcategories : subcategories.split(',').map(s => s.trim().toLowerCase());
@@ -263,12 +263,12 @@ exports.getAllProducts = async (filters = {}) => {
       const productTags = (product.tags || []).map(t => t.toLowerCase());
       const productCategoryNames = (product.categories || []).map(c => c.name?.toLowerCase() || '');
       const allSubcategories = [...productTags, ...productCategoryNames];
-      return subcategoryArray.some(subcat => 
+      return subcategoryArray.some(subcat =>
         allSubcategories.some(pc => pc.includes(subcat))
       );
     });
   }
-  
+
   return transformedData;
 };
 
@@ -291,7 +291,7 @@ exports.getProductBySlug = async (slug) => {
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
-  
+
   if (data) {
     return {
       ...data,
@@ -304,7 +304,7 @@ exports.getProductBySlug = async (slug) => {
       type: data.product_types?.[0]?.type || null,
     };
   }
-  
+
   return data;
 };
 
@@ -325,16 +325,16 @@ exports.getProductById = async (id, isAdmin = false) => {
       variants(*)
     `)
     .eq('id', id);
-  
+
   // Filter by active status for non-admin users
   if (!isAdmin) {
     query = query.eq('is_active', true);
   }
-  
+
   const { data, error } = await query.single();
 
   if (error && error.code !== 'PGRST116') throw error;
-  
+
   if (data) {
     return {
       ...data,
@@ -347,7 +347,7 @@ exports.getProductById = async (id, isAdmin = false) => {
       type: data.product_types?.[0]?.type || null,
     };
   }
-  
+
   return data;
 };
 
@@ -399,19 +399,19 @@ exports.createProduct = async (productData) => {
     // Get type information for SKU generation
     let typeSlug = null;
     const typeIdToUse = type_id || (Array.isArray(type_ids) && type_ids.length > 0 ? type_ids[0] : null);
-    
+
     if (typeIdToUse) {
       const { data: typeData } = await supabase
         .from('types')
         .select('slug')
         .eq('id', typeIdToUse)
         .single();
-      
+
       if (typeData) {
         typeSlug = typeData.slug;
       }
     }
-    
+
     // Generate SKU automatically
     finalSKU = await generateProductSKU(supabase, name, typeIdToUse, typeSlug, color, null);
   }
@@ -516,17 +516,29 @@ exports.createProduct = async (productData) => {
  */
 exports.updateProduct = async (id, productData) => {
   const updateData = { ...productData };
-  
+
   // Extract relationship arrays before updating product
   const collection_ids = updateData.collection_ids;
   const category_ids = updateData.category_ids;
   const type_ids = updateData.type_ids;
-  
+
   // Remove relationship arrays from update data (they go to junction tables)
   delete updateData.collection_ids;
   delete updateData.category_ids;
   delete updateData.type_ids;
-  
+
+  // Remove expanded relationship objects that might be present in the data
+  delete updateData.collections;
+  delete updateData.categories;
+  delete updateData.types;
+  delete updateData.variants;
+  delete updateData.collection; // Singular object
+  delete updateData.category;   // Singular object
+  delete updateData.type;       // Singular object
+  delete updateData.product_collections;
+  delete updateData.product_categories;
+  delete updateData.product_types;
+
   // Generate slug if name is being updated
   if (updateData.name) {
     updateData.slug = generateSlug(updateData.name);
@@ -558,7 +570,7 @@ exports.updateProduct = async (id, productData) => {
   if (Array.isArray(collection_ids)) {
     // Delete existing relationships
     await supabase.from('product_collections').delete().eq('product_id', id);
-    
+
     // Insert new relationships
     if (collection_ids.length > 0) {
       const { error: collectionsError } = await supabase
@@ -576,7 +588,7 @@ exports.updateProduct = async (id, productData) => {
   if (Array.isArray(category_ids)) {
     // Delete existing relationships
     await supabase.from('product_categories').delete().eq('product_id', id);
-    
+
     // Insert new relationships
     if (category_ids.length > 0) {
       const { error: categoriesError } = await supabase
@@ -594,7 +606,7 @@ exports.updateProduct = async (id, productData) => {
   if (Array.isArray(type_ids)) {
     // Delete existing relationships
     await supabase.from('product_types').delete().eq('product_id', id);
-    
+
     // Insert new relationships
     if (type_ids.length > 0) {
       const { error: typesError } = await supabase
@@ -631,7 +643,7 @@ exports.deleteProduct = async (id) => {
  */
 exports.updateProductStatus = async (id, { is_active, is_featured }) => {
   const updateData = { updated_at: new Date().toISOString() };
-  
+
   if (is_active !== undefined) updateData.is_active = is_active;
   if (is_featured !== undefined) updateData.is_featured = is_featured;
 

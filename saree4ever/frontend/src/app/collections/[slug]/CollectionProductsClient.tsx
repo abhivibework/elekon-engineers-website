@@ -11,6 +11,8 @@ interface Product {
   slug: string;
   name: string;
   primary_image_url: string | null;
+  image_urls?: (string | null)[] | null;
+  variants?: Array<{ image_url?: string | null } | null>;
   base_price: number;
   compare_at_price: number | null;
   collections?: Array<{
@@ -130,6 +132,8 @@ export default function CollectionProductsClient({ collectionSlug }: { collectio
                   slug={product.slug}
                   name={product.name}
                   image={product.primary_image_url}
+                  imageUrls={product.image_urls || []}
+                  variants={product.variants}
                   price={product.base_price}
                   compareAtPrice={product.compare_at_price}
                   collections={product.collections}
@@ -147,6 +151,5 @@ export default function CollectionProductsClient({ collectionSlug }: { collectio
     </div>
   );
 }
-
 
 

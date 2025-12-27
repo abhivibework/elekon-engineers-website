@@ -21,6 +21,7 @@ exports.signup = async (req, res) => {
       email,
       password,
       options: {
+        emailRedirectTo: process.env.FRONTEND_URL || 'http://localhost:3000',
         data: {
           full_name: full_name || null,
           phone: phone || null,
@@ -202,7 +203,7 @@ exports.adminSignin = async (req, res) => {
     // In production, check against a roles table or Supabase RLS
     // For now, you can maintain a list of admin emails in .env
     const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
-    
+
     if (!adminEmails.includes(email)) {
       return res.status(403).json({ error: 'Admin access denied' });
     }
