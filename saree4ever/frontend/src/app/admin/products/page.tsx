@@ -84,6 +84,7 @@ export default function AdminProductsPage() {
     compare_at_price: '',
     mrp: '',
     sku: '',
+    primary_image_url: '',
     color: '',
     weave: '',
     length_m: '',
@@ -181,6 +182,7 @@ export default function AdminProductsPage() {
         compare_at_price: '',
         mrp: '',
         sku: '',
+        primary_image_url: '',
         color: '',
         weave: '',
         length_m: '',
@@ -765,10 +767,7 @@ export default function AdminProductsPage() {
 
       const data = await response.json();
 
-      setFormData({
-        ...formData,
-        [file.name.includes('primary') || !formData.name ? 'primary_image_url' : 'primary_image_url']: data.url // Default to primary for now
-      });
+
 
       // Simple way to handle: just set it as primary_image_url
       setFormData(prev => ({ ...prev, primary_image_url: data.url }));
