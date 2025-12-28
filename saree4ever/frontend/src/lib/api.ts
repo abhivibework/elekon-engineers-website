@@ -1,5 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
-const DEFAULT_TIMEOUT = 10000; // 10 seconds
+const DEFAULT_TIMEOUT = 60000; // 60 seconds (increased from 10s for Render cold starts)
 
 export interface ApiError {
   error: string;
@@ -26,7 +26,7 @@ async function fetchAPI<T>(
 
   // Convert headers to a record for easier manipulation
   const headersRecord: Record<string, string> = {};
-  
+
   // Copy existing headers
   if (options.headers) {
     if (options.headers instanceof Headers) {
@@ -52,7 +52,7 @@ async function fetchAPI<T>(
   if (isBrowser) {
     // Check for token in localStorage
     const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
-    
+
     if (token) {
       headersRecord['Authorization'] = `Bearer ${token}`;
     }
@@ -440,38 +440,38 @@ export const api = {
     create: (data: unknown) => post('/landing-page-video', data),
     update: (id: string, data: unknown) => put(`/landing-page-video/${id}`, data),
     delete: (id: string) => del(`/landing-page-video/${id}`),
-    reorder: (videoOrders: Array<{ id: string; display_order: number }>) => 
+    reorder: (videoOrders: Array<{ id: string; display_order: number }>) =>
       post('/landing-page-video/reorder', { videoOrders }),
   },
 
   landingPageSections: {
     getVisibility: () => get('/landing-page-sections/visibility').catch(() => ({ visibility: {} })),
     getAll: () => get('/landing-page-sections'),
-    updateVisibility: (sectionKey: string, isVisible: boolean) => 
+    updateVisibility: (sectionKey: string, isVisible: boolean) =>
       put('/landing-page-sections/visibility', { section_key: sectionKey, is_visible: isVisible }),
-    bulkUpdateVisibility: (updates: Array<{ section_key: string; is_visible: boolean }>) => 
+    bulkUpdateVisibility: (updates: Array<{ section_key: string; is_visible: boolean }>) =>
       put('/landing-page-sections/visibility/bulk', { updates }),
   },
 
   socialMediaSettings: {
     getVisibleLinks: () => get('/social-media-settings/links').catch(() => ({ links: [] })),
     getAll: () => get('/social-media-settings'),
-    updateSetting: (platform: string, data: { url?: string; is_visible?: boolean; display_order?: number }) => 
+    updateSetting: (platform: string, data: { url?: string; is_visible?: boolean; display_order?: number }) =>
       put(`/social-media-settings/${platform}`, data),
-    bulkUpdate: (updates: Array<{ platform: string; url?: string; is_visible?: boolean; display_order?: number }>) => 
+    bulkUpdate: (updates: Array<{ platform: string; url?: string; is_visible?: boolean; display_order?: number }>) =>
       put('/social-media-settings/bulk/update', { updates }),
   },
 
   comingSoon: {
     getSettings: () => get('/coming-soon/settings').catch(() => ({ settings: { is_enabled: false } })),
-    updateSettings: (data: { is_enabled?: boolean; title?: string; subtitle?: string }) => 
+    updateSettings: (data: { is_enabled?: boolean; title?: string; subtitle?: string }) =>
       put('/coming-soon/settings', data),
     getMedia: () => get('/coming-soon/media').catch(() => ({ media: [] })),
     getAllMedia: () => get('/coming-soon/media/all'),
     createMedia: (data: unknown) => post('/coming-soon/media', data),
     updateMedia: (id: string, data: unknown) => put(`/coming-soon/media/${id}`, data),
     deleteMedia: (id: string) => del(`/coming-soon/media/${id}`),
-    reorderMedia: (mediaOrders: Array<{ id: string; display_order: number }>) => 
+    reorderMedia: (mediaOrders: Array<{ id: string; display_order: number }>) =>
       put('/coming-soon/media/reorder', { mediaOrders }),
   },
 };
