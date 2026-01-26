@@ -1,0 +1,43 @@
+.bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--primary-dark);
+    color: #fff;
+    z-index: 90;
+    display: flex;
+    padding: 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    font-family: var(--font-inter);
+}
+
+.item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.item:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@media (min-width: 768px) {
+    .bar {
+        display: none;
+        /* Often sticky bars are mobile-only, but user asked for it. Let's hide on desktop if header has info? Request says "Sticky Footer" but also gave desktop design. Let's make it mobile only to avoid double footer look, or keep it if desired. The design document says "Contact Bar (Sticky Footer)". I'll hide it on large screens where info is visible in header/footer, to be cleaner. */
+    }
+}

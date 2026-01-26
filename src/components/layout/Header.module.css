@@ -1,0 +1,150 @@
+.header {
+    height: var(--header-height);
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+}
+
+.logoImage {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 12px;
+    background-color: white;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.logoImage:hover {
+    transform: scale(1.05);
+}
+
+.brandName {
+    font-family: var(--font-cinzel), serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.nav {
+    display: none;
+}
+
+.navLinks {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+}
+
+.link {
+    color: var(--foreground-muted);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+    position: relative;
+}
+
+.link:hover {
+    color: var(--primary);
+}
+
+.link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--primary);
+    transition: width 0.2s;
+}
+
+.link:hover::after {
+    width: 100%;
+}
+
+.ctaDesktop {
+    display: none;
+}
+
+.menuButton {
+    background: none;
+    border: none;
+    color: var(--foreground);
+    cursor: pointer;
+    display: block;
+}
+
+.mobileMenu {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    background: var(--background);
+    padding: 2rem;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobileMenuOpen {
+    transform: translateX(0);
+}
+
+.mobileNavLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    list-style: none;
+    align-items: center;
+    text-align: center;
+}
+
+.mobileNavLinks .link {
+    font-size: 1.25rem;
+}
+
+@media (min-width: 900px) {
+    .nav {
+        display: block;
+    }
+
+    .ctaDesktop {
+        display: block;
+    }
+
+    .menuButton {
+        display: none;
+    }
+
+    .mobileMenu {
+        display: none;
+    }
+}
