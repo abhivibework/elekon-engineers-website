@@ -91,6 +91,19 @@
 
 .ctaDesktop {
     display: none;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.loginLink {
+    color: var(--foreground);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.loginLink:hover {
+    color: var(--primary);
 }
 
 .menuButton {

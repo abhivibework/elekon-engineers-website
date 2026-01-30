@@ -7,10 +7,9 @@ import Button from '../ui/Button';
 import styles from './Header.module.css';
 
 const NAV_LINKS = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About Us' },
-    { href: '/services', label: 'Services' },
-    { href: '/safety', label: 'Safety' },
+    { href: '/services', label: 'Product' },
+    { href: '/about', label: 'Features' },
+    { href: '/contact', label: 'Pricing' },
     { href: '/contact', label: 'Contact' },
 ];
 
@@ -41,8 +40,11 @@ export default function Header() {
 
                 {/* Desktop CTA */}
                 <div className={styles.ctaDesktop}>
+                    <Link href="/login" className={styles.loginLink}>
+                        Log in
+                    </Link>
                     <Button href="/contact" variant="primary">
-                        Get Free Quote
+                        Get Started
                     </Button>
                 </div>
 
